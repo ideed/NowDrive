@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "708187564298",
+    "project_id": "nowdrive-b315d",
+    "storage_bucket": "nowdrive-b315d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:708187564298:android:9d6cfb8a40f86749beb2f3",
+        "android_client_info": {
+          "package_name": "com.example.nowdrive"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "708187564298-6qind1s3h31vnp6s7kpl8lstbpof94fl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBMxMLZYBc50XHW9Kkqe-9v6rR48o5KuSc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "708187564298-6qind1s3h31vnp6s7kpl8lstbpof94fl.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
