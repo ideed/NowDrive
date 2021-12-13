@@ -4,11 +4,14 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/nowdriveicon"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@drawable/nowdriveicon"
         android:supportsRtl="true"
         android:theme="@style/Theme.NowDrive">
+        <activity
+            android:name=".Settings"
+            android:exported="true" />
         <activity
             android:name=".ForgotPassword"
             android:exported="true" />
