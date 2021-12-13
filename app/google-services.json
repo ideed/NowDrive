@@ -1,33 +1,34 @@
 {
   "project_info": {
-    "project_number": "708187564298",
-    "project_id": "nowdrive-b315d",
-    "storage_bucket": "nowdrive-b315d.appspot.com"
+    "project_number": "309189481822",
+    "firebase_url": "https://nowdrive-9bed3-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "nowdrive-9bed3",
+    "storage_bucket": "nowdrive-9bed3.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:708187564298:android:9d6cfb8a40f86749beb2f3",
+        "mobilesdk_app_id": "1:309189481822:android:26664eeeb8c58523d8ebcf",
         "android_client_info": {
           "package_name": "com.example.nowdrive"
         }
       },
       "oauth_client": [
         {
-          "client_id": "708187564298-6qind1s3h31vnp6s7kpl8lstbpof94fl.apps.googleusercontent.com",
+          "client_id": "309189481822-rs5geja4uf26gibnquf3600blmqrfu40.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyBMxMLZYBc50XHW9Kkqe-9v6rR48o5KuSc"
+          "current_key": "AIzaSyBofpE2oBPLUdiAfBKkBTrSKp5TFXTfvME"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "708187564298-6qind1s3h31vnp6s7kpl8lstbpof94fl.apps.googleusercontent.com",
+              "client_id": "309189481822-rs5geja4uf26gibnquf3600blmqrfu40.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

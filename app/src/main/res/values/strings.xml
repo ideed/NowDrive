@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">NowDrive</string>
+    <string name="password_info">Note: Password must be greather than 6 characters, contain a number, capital letter and special symbol (@,$,%,&amp;,#,)</string>
 </resources>

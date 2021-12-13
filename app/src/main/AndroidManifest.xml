@@ -10,6 +10,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.NowDrive">
         <activity
+            android:name=".ForgotPassword"
+            android:exported="true" />
+        <activity
+            android:name=".HomePage"
+            android:exported="true" />
+        <activity
             android:name=".Registration"
             android:exported="true" />
         <activity

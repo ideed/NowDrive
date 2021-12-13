@@ -33,7 +33,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/reg_email" />
+        app:layout_constraintTop_toBottomOf="@+id/password_info_view" />
 
     <EditText
         android:id="@+id/reg_pass_two"
@@ -77,6 +77,19 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/nowdrivelogo" />
+
+    <TextView
+        android:id="@+id/password_info_view"
+        android:layout_width="338dp"
+        android:layout_height="62dp"
+        android:layout_marginStart="34dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="40dp"
+        android:text="@string/password_info"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/reg_email" />
 
     <ProgressBar
         android:id="@+id/progressBar2"
