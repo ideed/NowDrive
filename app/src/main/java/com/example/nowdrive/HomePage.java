@@ -3,10 +3,14 @@ package com.example.nowdrive;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -39,7 +43,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         toolbar = findViewById(R.id.toolbar);
 
         Bundle mapViewBundle = null;
-        if(savedInstanceState != null) {
+        if (savedInstanceState != null) {
             mapViewBundle = savedInstanceState.getBundle(MAPVIEW_BUNDLE_KEY);
         }
         mapView = findViewById(R.id.mapView);
@@ -52,7 +56,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         setSupportActionBar(toolbar);
 
         navigationView.bringToFront();
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawerLayout,toolbar,R.string.navigation_drawer_open,R.string.navigation_drawer_close);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
@@ -61,7 +65,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
 
     @Override
     public void onBackPressed() {
-        if(drawerLayout.isDrawerOpen(GravityCompat.START)){
+        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START);
         } else {
             super.onBackPressed();
@@ -74,7 +78,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
             case R.id.nav_home:
                 break;
             case R.id.nav_settings:
-                startActivity(new Intent(HomePage.this,Settings.class));
+                startActivity(new Intent(HomePage.this, Settings.class));
                 break;
             case R.id.nav_logout:
                 Toast.makeText(HomePage.this, "Successfully logged out!", Toast.LENGTH_LONG).show();
@@ -85,24 +89,44 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         }
         return true;
     }
+
     @Override
     public void onResume() {
         super.onResume();
         mapView.onResume();
     }
+
     @Override
     public void onStart() {
         super.onStart();
         mapView.onStart();
     }
+
     @Override
     public void onStop() {
         super.onStop();
         mapView.onStop();
     }
+
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
-        googleMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title("Marker"));
+        googleMap.addMarker(new MarkerOptions().position(new LatLng(53.349203, -6.242245)).title("Marker"));
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            String[] perms = {Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
+            ActivityCompat.requestPermissions(this, perms, 1);
+            return;
+        }
+        googleMap.setMyLocationEnabled(true);
     }
     @Override
     public void onPause() {
@@ -118,5 +142,22 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
     public void onLowMemory() {
         super.onLowMemory();
         mapView.onLowMemory();
+    }
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                                           int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case 1:
+                if (grantResults.length > 0 &&
+                        grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(HomePage.this, "Location Access Granted!", Toast.LENGTH_LONG).show();
+                    finish();
+                    startActivity(getIntent());
+                } else {
+                    Toast.makeText(HomePage.this, "Please enable location services for the application in settings.", Toast.LENGTH_LONG).show();
+                }
+                return;
+        }
     }
 }
