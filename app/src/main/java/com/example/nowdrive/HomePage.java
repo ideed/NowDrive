@@ -11,17 +11,20 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.widget.Toast;
 
 import androidx.appcompat.widget.Toolbar;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 
@@ -32,7 +35,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
     Toolbar toolbar;
     FirebaseAuth mAuth;
     MapView mapView;
-
+    GoogleMap map;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -110,23 +113,24 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
 
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
-        googleMap.addMarker(new MarkerOptions().position(new LatLng(53.349203, -6.242245)).title("Marker"));
+        map = googleMap;
+        MarkerOptions nciMarker = new MarkerOptions().position(new LatLng(53.349203, -6.242245)).title("NCI");
+        MarkerOptions pointMarker =new MarkerOptions().position(new LatLng(53.348698,  -6.229743)).title("The Point");
+        map.addMarker(nciMarker);
+        map.addMarker(pointMarker);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
             String[] perms = {Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
             ActivityCompat.requestPermissions(this, perms, 1);
             return;
         }
-        googleMap.setMyLocationEnabled(true);
+        map.setMyLocationEnabled(true);
+        PolylineOptions polyOpt = new PolylineOptions().add(nciMarker.getPosition()).add(pointMarker.getPosition()).width(5).color(Color.RED).geodesic(true);
+        map.addPolyline(polyOpt);
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(nciMarker.getPosition(), 13));
+        map.setTrafficEnabled(true);
     }
     @Override
     public void onPause() {
