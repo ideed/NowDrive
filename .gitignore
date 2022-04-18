@@ -8,6 +8,7 @@
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
 /app/src/main/res/values/google_maps_api.xml
+/app/src/main/res/values/mapbox_api.xml
 .DS_Store
 /build
 /captures
