@@ -17,6 +17,11 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.CompoundButton;
+import android.widget.ProgressBar;
+import android.widget.Switch;
 import android.widget.Toast;
 
 import androidx.appcompat.widget.Toolbar;
@@ -35,20 +40,25 @@ import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.JointType;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.maps.android.PolyUtil;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class HomePage extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback {
+
     private static final String MAPVIEW_BUNDLE_KEY = "MapViewBundleKey";
     DrawerLayout drawerLayout;
     NavigationView navigationView;
@@ -59,6 +69,16 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
     RequestQueue queue;
     FusedLocationProviderClient mFusedLocationClient;
     LatLng userLatLng;
+    Polyline currentPoly;
+    Button removePointsBtn;
+    Button calRoutes;
+    Switch locationSwitch;
+    Boolean userLocation;
+    Boolean isUserlocationChecked;
+    Boolean locFlag;
+    ProgressBar calBar;
+    ArrayList<Marker> markers = new ArrayList<Marker>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -66,15 +86,78 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
 
         setContentView(R.layout.activity_home_page);
 
+        locFlag = false;
+        userLocation = false;
+        isUserlocationChecked = false;
         queue = Volley.newRequestQueue(this);
         drawerLayout = findViewById(R.id.drawer_layout);
         navigationView = findViewById(R.id.nav_view);
         toolbar = findViewById(R.id.toolbar);
+        removePointsBtn = findViewById(R.id.clearPointsBtn);
+        calRoutes = findViewById(R.id.calRoutesBtn);
+        locationSwitch = findViewById(R.id.locationSwitch);
+        calBar = findViewById(R.id.calBar);
+
+        removePointsBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                removePoints();
+            }
+        });
+
+        locationSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
+                if(!userLocation){
+                    locationSwitch.setChecked(false);
+                    Toast.makeText(HomePage.this, "Please enable location in device settings for this app.", Toast.LENGTH_LONG).show();
+                } else {
+                    isUserlocationChecked = isChecked;
+                    if(isChecked){
+                        locFlag = true;
+                        removePoints();
+                        MarkerOptions currentMark = new MarkerOptions().position(userLatLng).title("Position A");
+                        Marker locMark = map.addMarker(currentMark);
+                        markers.add(locMark);
+                    } else {
+                        locFlag = false;
+                        removePoints();
+                    }
+                }
+            }
+        });
+
+        calRoutes.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(markers.size()<2){
+                    Toast.makeText(HomePage.this, "Two points must be placed!", Toast.LENGTH_LONG).show();
+                } else {
+                    Marker originMark = null;
+                    Marker destMark = null;
+                    for(int i=0;i<markers.size();i++){
+                        if(i==0){
+                            originMark = markers.get(i);
+                        } else {
+                            destMark = markers.get(i);
+                        }
+                    }
+                    queue.cancelAll("Google Maps API Call");
+                    calBar.setVisibility(View.VISIBLE);
+                    StringRequest strReq = createStringRequest(originMark.getPosition().latitude,originMark.getPosition().longitude,destMark.getPosition().latitude,destMark.getPosition().longitude);
+                    strReq.setTag("Google Maps API Call");
+                    queue.add(strReq);
+                    calBar.setVisibility(View.GONE);
+                    map.moveCamera(CameraUpdateFactory.newLatLngZoom(originMark.getPosition(), 13));
+                }
+            }
+        });
 
         Bundle mapViewBundle = null;
         if (savedInstanceState != null) {
             mapViewBundle = savedInstanceState.getBundle(MAPVIEW_BUNDLE_KEY);
         }
+
         mapView = findViewById(R.id.mapView);
         mapView.onCreate(mapViewBundle);
 
@@ -92,31 +175,60 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         navigationView.setNavigationItemSelectedListener(this);
     }
 
-    private void intialiseMap() {
+    private void removePoints() {
+        if(markers.size()==0&&!locFlag){
+            Toast.makeText(HomePage.this, "No points on map!", Toast.LENGTH_LONG).show();
+        } else {
+            System.out.println("Size: "+markers.size());
+            ArrayList<Marker> removeMarksList = new ArrayList<Marker>();
+            for (int i=0;i<markers.size();i++){
+                System.out.println("Index: "+i);
+                Marker currentMark = markers.get(i);
+                if(i==0&&isUserlocationChecked){
+                    continue;
+                }
+                currentMark.remove();
+                removeMarksList.add(currentMark);
+            }
+            markers.removeAll(removeMarksList);
+            if(currentPoly!=null){
+                currentPoly.remove();
+            }
+            }
+        }
 
+    private void intialiseMap() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             String[] perms = {Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION};
             ActivityCompat.requestPermissions(this, perms, 1);
-            return;
         }
 
-        map.setMyLocationEnabled(true);
+        if(userLocation){
+            map.setMyLocationEnabled(true);
+        }
 
-        MarkerOptions nciMarker = new MarkerOptions().position(new LatLng(53.349203, -6.242245)).title("NCI");
-        MarkerOptions userMarker = new MarkerOptions().position(userLatLng).title("Current Location");
-        MarkerOptions pointMarker =new MarkerOptions().position(new LatLng(53.348698,  -6.229743)).title("The Point");
-        map.addMarker(nciMarker);
-        map.addMarker(userMarker);
-        map.addMarker(pointMarker);
-
-        queue.cancelAll("Google Maps API Call");
-        StringRequest strReq = createStringRequest(userLatLng.latitude,userLatLng.longitude,pointMarker.getPosition().latitude,pointMarker.getPosition().longitude);
-        strReq.setTag("Google Maps API Call");
-        queue.add(strReq);
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 13));
+        map.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
+            @Override
+            public void onMapLongClick(@NonNull LatLng point) {
+                if(markers.size()<2){
+                    MarkerOptions userMarker = new MarkerOptions().position(point);
+                    if(markers.size()<1){
+                        userMarker.title("Point A");
+                    } else {
+                        userMarker.title("Point B");
+                    }
+                    Marker userMark = map.addMarker(userMarker);
+                    markers.add(userMark);
+                    Toast.makeText(HomePage.this, "Point created!", Toast.LENGTH_LONG).show();
+                }
+                else {
+                    Toast.makeText(HomePage.this, "Number of points exceeds 2 please clear the points.", Toast.LENGTH_LONG).show();
+                }
+            }
+        });
     }
 
     private void getLastKnownLocation() {
@@ -130,8 +242,12 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
             @Override
             public void onComplete(@NonNull Task<Location> task) {
                 if(task.isSuccessful()){
+                    userLocation = true;
                     Location location = task.getResult();
                     userLatLng = new LatLng(location.getLatitude(),location.getLongitude());
+                    intialiseMap();
+                } else {
+                    userLocation = false;
                     intialiseMap();
                 }
             }
@@ -152,29 +268,15 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                     public void onResponse(String response) {
                         try {
                             PolylineOptions polyOpt = new PolylineOptions();
-                            ArrayList<LatLng> cords= new ArrayList<LatLng>();
+                            List<LatLng> cords= new ArrayList<LatLng>();
                             JSONObject result = new JSONObject(response);
                             JSONArray routes = result.getJSONArray("routes");
                             JSONObject route = routes.getJSONObject(0);
-                            JSONArray legs = route.getJSONArray("legs");
-                            JSONObject leg = legs.getJSONObject(0);
-                            JSONArray steps = leg.getJSONArray("steps");
-                            for(int i = 0;i < steps.length();i++){
-                                JSONObject step = steps.getJSONObject(i);
-                                System.out.println("step: "+step);
-                                JSONObject start = step.getJSONObject("start_location");
-                                JSONObject end = step.getJSONObject("end_location");
-                                double startLat = start.getDouble("lat");
-                                double startLng = start.getDouble("lng");
-                                double endLat = end.getDouble("lat");
-                                double endLng = end.getDouble("lng");
-                                LatLng startFinal = new LatLng(startLat,startLng);
-                                cords.add(startFinal);
-                                LatLng endFinal = new LatLng(endLat,endLng);
-                                cords.add(endFinal);
-                            }
+                            JSONObject poly = route.getJSONObject("overview_polyline");
+                            String polyEncode = poly.getString("points");
+                            cords = PolyUtil.decode(polyEncode);
                             polyOpt.addAll(cords).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
-                            map.addPolyline(polyOpt);
+                            currentPoly = map.addPolyline(polyOpt);
                         } catch (JSONException e) {
                             System.out.println("Error: "+e.getMessage());
                             Toast.makeText(HomePage.this, e.getMessage(), Toast.LENGTH_LONG).show();
@@ -239,6 +341,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
     public void onMapReady(@NonNull GoogleMap googleMap) {
         map = googleMap;
         getLastKnownLocation();
+        intialiseMap();
     }
 
     @Override
