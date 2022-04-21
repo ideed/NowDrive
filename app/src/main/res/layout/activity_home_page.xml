@@ -35,6 +35,7 @@
                 app:navigationIcon="@drawable/menu_icon" />
 
             <SearchView
+                android:id="@+id/route_search"
                 android:layout_width="347dp"
                 android:layout_height="58dp"
                 android:background="#656262"
@@ -61,22 +62,55 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/calRoutesBtn" />
 
+        <Switch
+            android:id="@+id/toll_switch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="40dp"
+            android:layout_marginTop="20dp"
+            android:minHeight="48dp"
+            android:text="Avoid Tolls"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/locationSwitch" />
+
+        <Switch
+            android:id="@+id/highway_switch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="30dp"
+            android:layout_marginTop="70dp"
+            android:minHeight="48dp"
+            android:text="Avoid Highways"
+            app:layout_constraintStart_toEndOf="@+id/locationSwitch"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <Button
+            android:id="@+id/save_route_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="41dp"
+            android:text="Save Route"
+            android:textColor="#FFFFFF"
+            app:layout_constraintEnd_toStartOf="@+id/calRoutesBtn"
+            app:layout_constraintTop_toBottomOf="@+id/toll_switch" />
+
         <Button
             android:id="@+id/calRoutesBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="110dp"
             android:layout_marginTop="12dp"
+            android:layout_marginEnd="20dp"
             android:text="Calculate Routes"
             android:textColor="#FFFFFF"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/clearPointsBtn" />
 
         <Switch
             android:id="@+id/locationSwitch"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="40dp"
             android:layout_marginTop="70dp"
             android:minHeight="48dp"
             android:text="Use current location"
@@ -87,12 +121,12 @@
             android:id="@+id/clearPointsBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="70dp"
+            android:layout_marginTop="23dp"
             android:layout_marginEnd="24dp"
             android:text="Remove Points"
             android:textColor="#FFFFFF"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toBottomOf="@+id/locationSwitch" />
 
         <com.google.android.gms.maps.MapView
             android:id="@+id/mapView"

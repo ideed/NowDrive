@@ -21,6 +21,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.ProgressBar;
+import android.widget.SearchView;
 import android.widget.Switch;
 import android.widget.Toast;
 
@@ -70,9 +71,13 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
     FusedLocationProviderClient mFusedLocationClient;
     LatLng userLatLng;
     Polyline currentPoly;
+    SearchView routeSearch;
     Button removePointsBtn;
     Button calRoutes;
+    Button saveRoute;
     Switch locationSwitch;
+    Switch tollSwitch;
+    Switch highwaySwitch;
     Boolean userLocation;
     Boolean isUserlocationChecked;
     Boolean locFlag;
@@ -93,15 +98,26 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         drawerLayout = findViewById(R.id.drawer_layout);
         navigationView = findViewById(R.id.nav_view);
         toolbar = findViewById(R.id.toolbar);
+        routeSearch = findViewById(R.id.route_search);
         removePointsBtn = findViewById(R.id.clearPointsBtn);
+        saveRoute = findViewById(R.id.save_route_btn);
         calRoutes = findViewById(R.id.calRoutesBtn);
         locationSwitch = findViewById(R.id.locationSwitch);
+        tollSwitch = findViewById(R.id.toll_switch);
+        highwaySwitch = findViewById(R.id.highway_switch);
         calBar = findViewById(R.id.calBar);
 
         removePointsBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 removePoints();
+            }
+        });
+
+        routeSearch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                routeSearch.setIconified(false);
             }
         });
 
@@ -130,6 +146,9 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         calRoutes.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if(currentPoly!=null){
+                    currentPoly.remove();
+                }
                 if(markers.size()<2){
                     Toast.makeText(HomePage.this, "Two points must be placed!", Toast.LENGTH_LONG).show();
                 } else {
@@ -258,9 +277,26 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         String prefix = "https://maps.googleapis.com/maps/api/directions/json?";
         String origin = "origin="+originLat+","+originLng+"&";
         String dest = "destination="+destLat+","+destLng+"&";
+        String avoid = "";
         String key = "key="+getString(R.string.google_maps_key);
 
-        String url = prefix+origin+dest+key;
+        System.out.println("Highway: "+highwaySwitch.isChecked()+" Toll: "+tollSwitch.isChecked());
+        if(highwaySwitch.isChecked()){
+            avoid = "avoid=highways";
+        }
+        if(tollSwitch.isChecked()){
+            if(avoid.equals("")){
+                avoid = "avoid=tolls";
+            }
+            else {
+                avoid += "|tolls";
+            }
+        }
+        if(!avoid.equals("")){
+            avoid += "&";
+        }
+
+        String url = prefix+origin+dest+avoid+key;
         System.out.println("url: "+url);
         return new StringRequest(Request.Method.GET, url,
                 new Response.Listener<String>() {
@@ -340,8 +376,8 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         map = googleMap;
-        getLastKnownLocation();
         intialiseMap();
+        getLastKnownLocation();
     }
 
     @Override
