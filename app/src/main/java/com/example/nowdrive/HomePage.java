@@ -12,17 +12,23 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.SearchView;
 import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.widget.Toolbar;
@@ -49,6 +55,9 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.maps.android.PolyUtil;
 
 import org.json.JSONArray;
@@ -56,15 +65,18 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class HomePage extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback {
 
     private static final String MAPVIEW_BUNDLE_KEY = "MapViewBundleKey";
+    private FirebaseAuth mAuth;
+    private FirebaseUser user;
     DrawerLayout drawerLayout;
     NavigationView navigationView;
     Toolbar toolbar;
-    FirebaseAuth mAuth;
     MapView mapView;
     GoogleMap map;
     RequestQueue queue;
@@ -106,6 +118,9 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         tollSwitch = findViewById(R.id.toll_switch);
         highwaySwitch = findViewById(R.id.highway_switch);
         calBar = findViewById(R.id.calBar);
+
+        mAuth = FirebaseAuth.getInstance();
+        user = mAuth.getCurrentUser();
 
         removePointsBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -168,6 +183,73 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                     queue.add(strReq);
                     calBar.setVisibility(View.GONE);
                     map.moveCamera(CameraUpdateFactory.newLatLngZoom(originMark.getPosition(), 13));
+                }
+            }
+        });
+
+        saveRoute.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(currentPoly==null){
+                    Toast.makeText(HomePage.this, "A route must be plotted in order to be saved!", Toast.LENGTH_LONG).show();
+                } else {
+
+                    LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+                    View popupView = inflater.inflate(R.layout.save_route_popup, null);
+                    int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+                    int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+                    boolean focusable = true;
+
+                    PopupWindow popupWindow = new PopupWindow(popupView, width, height, focusable);
+                    popupWindow.showAtLocation(view, Gravity.CENTER, 0, 0);
+
+                    popupView.findViewById(R.id.cancel_btn).setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            popupWindow.dismiss();
+                        }
+                    });
+
+                    popupView.findViewById(R.id.submit_btn).setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            TextView routeName = popupView.findViewById(R.id.route_name_input);
+                            if(routeName.getText().toString().isEmpty()){
+                                Toast.makeText(HomePage.this,"A name for the route must be assigned!", Toast.LENGTH_LONG).show();
+                            } else {
+                                ProgressBar progBar = popupView.findViewById(R.id.prog_bar);
+                                String route_name = routeName.getText().toString();
+                                String originLat = ""+markers.get(0).getPosition().latitude;
+                                String originLng = ""+markers.get(0).getPosition().longitude;
+                                String destLat = ""+markers.get(0).getPosition().latitude;
+                                String destLng = ""+markers.get(0).getPosition().longitude;
+                                String encodedPolyline = PolyUtil.encode(currentPoly.getPoints());
+                                String avoidHighways = ""+highwaySwitch.isChecked();
+                                String avoidTolls = ""+tollSwitch.isChecked();
+
+                                progBar.setVisibility(View.VISIBLE);
+
+                                Route newRoute = new Route(route_name,originLat,originLng,destLat,destLng,encodedPolyline,avoidHighways,avoidTolls);
+                                DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Users")
+                                        .child(FirebaseAuth.getInstance().getCurrentUser().getUid())
+                                        .child("Routes");
+                                FirebaseDatabase.getInstance().getReference("Users")
+                                    .child(FirebaseAuth.getInstance().getCurrentUser().getUid())
+                                    .child("Routes").child(ref.push().getKey()).setValue(newRoute).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                        @Override
+                                        public void onComplete(@NonNull Task<Void> task) {
+                                            if(task.isSuccessful()){
+                                                Toast.makeText(HomePage.this, "Route Saved!", Toast.LENGTH_LONG).show();
+                                            } else {
+                                                Toast.makeText(HomePage.this, "Error: Route cannot be saved!", Toast.LENGTH_LONG).show();
+                                            }
+                                        }
+                                    });
+                                progBar.setVisibility(View.GONE);
+                                popupWindow.dismiss();
+                            }
+                        }
+                    });
                 }
             }
         });
