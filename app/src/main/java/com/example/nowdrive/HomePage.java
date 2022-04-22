@@ -21,9 +21,13 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Adapter;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.SearchView;
@@ -32,6 +36,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.widget.Toolbar;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -56,8 +61,11 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.maps.android.PolyUtil;
 
 import org.json.JSONArray;
@@ -93,7 +101,13 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
     Boolean userLocation;
     Boolean isUserlocationChecked;
     Boolean locFlag;
+    Boolean searchFlag;
     ProgressBar calBar;
+    ListView routesView;
+
+    ArrayAdapter<String> adapter;
+    ArrayList<Route> DBRoutes = new ArrayList<Route>();
+    ArrayList<String> DBRoutesName = new ArrayList<String>();
     ArrayList<Marker> markers = new ArrayList<Marker>();
 
     @Override
@@ -104,6 +118,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         setContentView(R.layout.activity_home_page);
 
         locFlag = false;
+        searchFlag = false;
         userLocation = false;
         isUserlocationChecked = false;
         queue = Volley.newRequestQueue(this);
@@ -118,6 +133,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         tollSwitch = findViewById(R.id.toll_switch);
         highwaySwitch = findViewById(R.id.highway_switch);
         calBar = findViewById(R.id.calBar);
+        routesView = findViewById(R.id.routes_view);
 
         mAuth = FirebaseAuth.getInstance();
         user = mAuth.getCurrentUser();
@@ -129,10 +145,76 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
             }
         });
 
+        routeSearch.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean hasFocus) {
+                if(hasFocus){
+                    routesView.setVisibility(View.VISIBLE);
+                } else {
+                    routesView.setVisibility(View.GONE);
+                }
+            }
+        });
+
         routeSearch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                DBRoutes.clear();
+                DBRoutesName.clear();
                 routeSearch.setIconified(false);
+                DatabaseReference ref = FirebaseDatabase.getInstance().getReference().child("Users").child(FirebaseAuth.getInstance().getCurrentUser().getUid()).child("Routes");
+                ref.addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        for(DataSnapshot postSnap: snapshot.getChildren()){
+                            Route collectedRoute = postSnap.getValue(Route.class);
+                            DBRoutes.add(collectedRoute);
+                            DBRoutesName.add(collectedRoute.routeName);
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        Toast.makeText(HomePage.this, error.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                });
+                adapter = new ArrayAdapter<String>(HomePage.this, android.R.layout.simple_list_item_1, DBRoutesName);
+                routesView.setAdapter(adapter);
+                routesView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                        Route currentRoute = DBRoutes.get(i);
+                        searchFlag = true;
+                        removePoints();
+                        searchFlag = false;
+                        PolylineOptions polyOpt = new PolylineOptions();
+                        List<LatLng> cords= new ArrayList<LatLng>();
+
+                        double originLat = Double.parseDouble(currentRoute.originLat);
+                        double originLng = Double.parseDouble(currentRoute.originLng);
+                        LatLng origin = new LatLng(originLat,originLng);
+
+                        double destLat = Double.parseDouble(currentRoute.destLat);
+                        double destLng = Double.parseDouble(currentRoute.destLng);
+                        LatLng dest = new LatLng(destLat,destLng);
+
+                        MarkerOptions originOpt = new MarkerOptions().position(origin).title("Position A");
+                        MarkerOptions destOpt = new MarkerOptions().position(dest).title("Position B");
+
+                        Marker originMark = map.addMarker(originOpt);
+                        markers.add(originMark);
+                        Marker destMark = map.addMarker(destOpt);
+
+                        markers.add(destMark);
+
+                        cords = PolyUtil.decode(currentRoute.encodedPolyLine);
+                        polyOpt.addAll(cords).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
+                        currentPoly = map.addPolyline(polyOpt);
+                        routeSearch.clearFocus();
+                        map.moveCamera(CameraUpdateFactory.newLatLngZoom(originMark.getPosition(), 13));
+                    }
+                });
+
             }
         });
 
@@ -221,8 +303,8 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                                 String route_name = routeName.getText().toString();
                                 String originLat = ""+markers.get(0).getPosition().latitude;
                                 String originLng = ""+markers.get(0).getPosition().longitude;
-                                String destLat = ""+markers.get(0).getPosition().latitude;
-                                String destLng = ""+markers.get(0).getPosition().longitude;
+                                String destLat = ""+markers.get(1).getPosition().latitude;
+                                String destLng = ""+markers.get(1).getPosition().longitude;
                                 String encodedPolyline = PolyUtil.encode(currentPoly.getPoints());
                                 String avoidHighways = ""+highwaySwitch.isChecked();
                                 String avoidTolls = ""+tollSwitch.isChecked();
@@ -259,6 +341,22 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
             mapViewBundle = savedInstanceState.getBundle(MAPVIEW_BUNDLE_KEY);
         }
 
+        routeSearch.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String s) {
+                routesView.setVisibility(View.GONE);
+                routeSearch.clearFocus();
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String s) {
+                adapter.getFilter().filter(s);
+                routesView.setVisibility(View.VISIBLE);
+                return false;
+            }
+        });
+
         mapView = findViewById(R.id.mapView);
         mapView.onCreate(mapViewBundle);
 
@@ -277,7 +375,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
     }
 
     private void removePoints() {
-        if(markers.size()==0&&!locFlag){
+        if(markers.size()==0&&!locFlag&&!searchFlag){
             Toast.makeText(HomePage.this, "No points on map!", Toast.LENGTH_LONG).show();
         } else {
             System.out.println("Size: "+markers.size());
