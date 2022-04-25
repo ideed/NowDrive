@@ -156,6 +156,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                     routesView.setVisibility(View.VISIBLE);
                 } else {
                     routesView.setVisibility(View.GONE);
+                    DBRoutesName.clear();
                 }
             }
         });
@@ -197,38 +198,82 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                         if (currentRoute == null){
                             Toast.makeText(HomePage.this, "Error in gathering saved route.", Toast.LENGTH_LONG).show();
                         } else {
-                            searchFlag = true;
-                            removePoints();
-                            searchFlag = false;
-                            PolylineOptions polyOpt = new PolylineOptions();
-                            List<LatLng> cords= new ArrayList<LatLng>();
+                            if(searchFlag){
+                                removePoints();
+                                searchFlag = false;
+                            } else {
+                                searchFlag = true;
+                                removePoints();
+                                searchFlag = false;
+                                PolylineOptions polyOpt = new PolylineOptions();
+                                List<LatLng> cords= new ArrayList<LatLng>();
 
-                            double originLat = Double.parseDouble(currentRoute.originLat);
-                            double originLng = Double.parseDouble(currentRoute.originLng);
-                            LatLng origin = new LatLng(originLat,originLng);
+                                Boolean avoidHighways = Boolean.parseBoolean(currentRoute.avoidHighways);
+                                Boolean avoidTolls = Boolean.parseBoolean(currentRoute.avoidTolls);
 
-                            double destLat = Double.parseDouble(currentRoute.destLat);
-                            double destLng = Double.parseDouble(currentRoute.destLng);
-                            LatLng dest = new LatLng(destLat,destLng);
+                                locationSwitch.setChecked(false);
+                                highwaySwitch.setChecked(avoidHighways);
+                                tollSwitch.setChecked(avoidTolls);
 
-                            MarkerOptions originOpt = new MarkerOptions().position(origin).title("Position A");
-                            MarkerOptions destOpt = new MarkerOptions().position(dest).title("Position B");
+                                double originLat = Double.parseDouble(currentRoute.originLat);
+                                double originLng = Double.parseDouble(currentRoute.originLng);
+                                LatLng origin = new LatLng(originLat,originLng);
 
-                            Marker originMark = map.addMarker(originOpt);
-                            markers.add(originMark);
-                            Marker destMark = map.addMarker(destOpt);
+                                double destLat = Double.parseDouble(currentRoute.destLat);
+                                double destLng = Double.parseDouble(currentRoute.destLng);
+                                LatLng dest = new LatLng(destLat,destLng);
 
-                            markers.add(destMark);
+                                MarkerOptions originOpt = new MarkerOptions().position(origin).title("Position A");
+                                MarkerOptions destOpt = new MarkerOptions().position(dest).title("Position B");
 
-                            cords = PolyUtil.decode(currentRoute.encodedPolyLine);
-                            polyOpt.addAll(cords).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
-                            currentPoly = map.addPolyline(polyOpt);
-                            routeSearch.clearFocus();
-                            map.moveCamera(CameraUpdateFactory.newLatLngZoom(originMark.getPosition(), 13));
+                                Marker originMark = map.addMarker(originOpt);
+                                markers.add(originMark);
+                                Marker destMark = map.addMarker(destOpt);
+
+                                markers.add(destMark);
+
+                                cords = PolyUtil.decode(currentRoute.encodedPolyLine);
+                                polyOpt.addAll(cords).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
+                                currentPoly = map.addPolyline(polyOpt);
+                                routeSearch.clearFocus();
+                                map.moveCamera(CameraUpdateFactory.newLatLngZoom(originMark.getPosition(), 13));
+                            }
                         }
                     }
                 });
 
+            }
+        });
+
+        routesView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
+                DatabaseReference ref = FirebaseDatabase.getInstance().getReference().child("Users").child(FirebaseAuth.getInstance().getCurrentUser().getUid()).child("Routes");
+                String route = (String) routesView.getItemAtPosition(i);
+                Task<DataSnapshot> task= ref.get();
+                task.addOnSuccessListener(new OnSuccessListener<DataSnapshot>() {
+                    @Override
+                    public void onSuccess(DataSnapshot dataSnapshot) {
+                        Boolean nameFlag = false;
+                        DataSnapshot sc = dataSnapshot;
+                        for (DataSnapshot child : sc.getChildren()) {
+                            if(child.child("routeName").getValue().equals(route)){
+                                child.getRef().removeValue();
+                                routeSearch.clearFocus();
+                                DBRoutesName.clear();
+                                routesView.setVisibility(View.GONE);
+                                Toast.makeText(HomePage.this, "Route removed!", Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    }
+                    }).addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Toast.makeText(HomePage.this, e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+                searchFlag = true;
+                return false;
             }
         });
 
