@@ -1,6 +1,7 @@
 package com.example.nowdrive;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -57,10 +58,13 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -183,35 +187,45 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                 routesView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                     @Override
                     public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                        Route currentRoute = DBRoutes.get(i);
-                        searchFlag = true;
-                        removePoints();
-                        searchFlag = false;
-                        PolylineOptions polyOpt = new PolylineOptions();
-                        List<LatLng> cords= new ArrayList<LatLng>();
+                        String route = (String) routesView.getItemAtPosition(i);
+                        Route currentRoute = null;
+                        for (int j=0;j<DBRoutes.size();j++){
+                            if(DBRoutes.get(j).routeName.equals(route)){
+                                currentRoute = DBRoutes.get(j);
+                            }
+                        }
+                        if (currentRoute == null){
+                            Toast.makeText(HomePage.this, "Error in gathering saved route.", Toast.LENGTH_LONG).show();
+                        } else {
+                            searchFlag = true;
+                            removePoints();
+                            searchFlag = false;
+                            PolylineOptions polyOpt = new PolylineOptions();
+                            List<LatLng> cords= new ArrayList<LatLng>();
 
-                        double originLat = Double.parseDouble(currentRoute.originLat);
-                        double originLng = Double.parseDouble(currentRoute.originLng);
-                        LatLng origin = new LatLng(originLat,originLng);
+                            double originLat = Double.parseDouble(currentRoute.originLat);
+                            double originLng = Double.parseDouble(currentRoute.originLng);
+                            LatLng origin = new LatLng(originLat,originLng);
 
-                        double destLat = Double.parseDouble(currentRoute.destLat);
-                        double destLng = Double.parseDouble(currentRoute.destLng);
-                        LatLng dest = new LatLng(destLat,destLng);
+                            double destLat = Double.parseDouble(currentRoute.destLat);
+                            double destLng = Double.parseDouble(currentRoute.destLng);
+                            LatLng dest = new LatLng(destLat,destLng);
 
-                        MarkerOptions originOpt = new MarkerOptions().position(origin).title("Position A");
-                        MarkerOptions destOpt = new MarkerOptions().position(dest).title("Position B");
+                            MarkerOptions originOpt = new MarkerOptions().position(origin).title("Position A");
+                            MarkerOptions destOpt = new MarkerOptions().position(dest).title("Position B");
 
-                        Marker originMark = map.addMarker(originOpt);
-                        markers.add(originMark);
-                        Marker destMark = map.addMarker(destOpt);
+                            Marker originMark = map.addMarker(originOpt);
+                            markers.add(originMark);
+                            Marker destMark = map.addMarker(destOpt);
 
-                        markers.add(destMark);
+                            markers.add(destMark);
 
-                        cords = PolyUtil.decode(currentRoute.encodedPolyLine);
-                        polyOpt.addAll(cords).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
-                        currentPoly = map.addPolyline(polyOpt);
-                        routeSearch.clearFocus();
-                        map.moveCamera(CameraUpdateFactory.newLatLngZoom(originMark.getPosition(), 13));
+                            cords = PolyUtil.decode(currentRoute.encodedPolyLine);
+                            polyOpt.addAll(cords).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
+                            currentPoly = map.addPolyline(polyOpt);
+                            routeSearch.clearFocus();
+                            map.moveCamera(CameraUpdateFactory.newLatLngZoom(originMark.getPosition(), 13));
+                        }
                     }
                 });
 
@@ -311,22 +325,47 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
 
                                 progBar.setVisibility(View.VISIBLE);
 
-                                Route newRoute = new Route(route_name,originLat,originLng,destLat,destLng,encodedPolyline,avoidHighways,avoidTolls);
                                 DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Users")
                                         .child(FirebaseAuth.getInstance().getCurrentUser().getUid())
                                         .child("Routes");
-                                FirebaseDatabase.getInstance().getReference("Users")
-                                    .child(FirebaseAuth.getInstance().getCurrentUser().getUid())
-                                    .child("Routes").child(ref.push().getKey()).setValue(newRoute).addOnCompleteListener(new OnCompleteListener<Void>() {
-                                        @Override
-                                        public void onComplete(@NonNull Task<Void> task) {
-                                            if(task.isSuccessful()){
-                                                Toast.makeText(HomePage.this, "Route Saved!", Toast.LENGTH_LONG).show();
-                                            } else {
-                                                Toast.makeText(HomePage.this, "Error: Route cannot be saved!", Toast.LENGTH_LONG).show();
+
+                                Task<DataSnapshot> task= ref.get();
+                                task.addOnSuccessListener(new OnSuccessListener<DataSnapshot>() {
+                                    @Override
+                                    public void onSuccess(DataSnapshot dataSnapshot) {
+                                        Boolean nameFlag = false;
+                                        DataSnapshot sc = dataSnapshot;
+                                        for (DataSnapshot child : sc.getChildren()) {
+                                            if(child.child("routeName").getValue().equals(route_name)){
+                                                System.out.println("Value: "+child.getValue());
+                                                Toast.makeText(HomePage.this, "Error: Route name already exists, please make a new one.", Toast.LENGTH_LONG).show();
+                                                nameFlag = true;
                                             }
                                         }
-                                    });
+
+                                        if(!nameFlag){
+                                            Route newRoute = new Route(route_name, originLat, originLng, destLat, destLng, encodedPolyline, avoidHighways, avoidTolls);
+                                            FirebaseDatabase.getInstance().getReference("Users")
+                                                    .child(FirebaseAuth.getInstance().getCurrentUser().getUid())
+                                                    .child("Routes").child(ref.push().getKey()).setValue(newRoute).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                @Override
+                                                public void onComplete(@NonNull Task<Void> task) {
+                                                    if(task.isSuccessful()){
+                                                        Toast.makeText(HomePage.this, "Route Saved!", Toast.LENGTH_LONG).show();
+                                                    } else {
+                                                        Toast.makeText(HomePage.this, "Error: Route cannot be saved!", Toast.LENGTH_LONG).show();
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    }
+                                }).addOnFailureListener(new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {
+                                       Toast.makeText(HomePage.this, e.getMessage(), Toast.LENGTH_LONG).show();
+                                    }
+                                });
+
                                 progBar.setVisibility(View.GONE);
                                 popupWindow.dismiss();
                             }
