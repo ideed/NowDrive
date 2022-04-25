@@ -76,7 +76,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,6 +101,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
     Button removePointsBtn;
     Button calRoutes;
     Button saveRoute;
+    Button prevRoute;
     Switch locationSwitch;
     Switch tollSwitch;
     Switch highwaySwitch;
@@ -109,6 +112,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
     ProgressBar calBar;
     ListView routesView;
 
+    Deque<Route> previousRoutes = new ArrayDeque<Route>();
     ArrayAdapter<String> adapter;
     ArrayList<Route> DBRoutes = new ArrayList<Route>();
     ArrayList<String> DBRoutesName = new ArrayList<String>();
@@ -131,6 +135,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         toolbar = findViewById(R.id.toolbar);
         routeSearch = findViewById(R.id.route_search);
         removePointsBtn = findViewById(R.id.clearPointsBtn);
+        prevRoute = findViewById(R.id.previousRouteBtn);
         saveRoute = findViewById(R.id.save_route_btn);
         calRoutes = findViewById(R.id.calRoutesBtn);
         locationSwitch = findViewById(R.id.locationSwitch);
@@ -229,7 +234,6 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                                 Marker originMark = map.addMarker(originOpt);
                                 markers.add(originMark);
                                 Marker destMark = map.addMarker(destOpt);
-
                                 markers.add(destMark);
 
                                 cords = PolyUtil.decode(currentRoute.encodedPolyLine);
@@ -420,6 +424,49 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
             }
         });
 
+        prevRoute.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(previousRoutes.isEmpty()){
+                    Toast.makeText(HomePage.this, "There are no previous routes!", Toast.LENGTH_LONG).show();
+                } else {
+                    Route prev = previousRoutes.pop();
+                    if(previousRoutes.isEmpty()){
+                        Toast.makeText(HomePage.this, "There are no previous routes!", Toast.LENGTH_LONG).show();
+                    } else {
+                        locationSwitch.setChecked(false);
+                        locFlag = false;
+                        searchFlag = true;
+                        removePoints();
+                        searchFlag = false;
+
+                        double originLat = Double.parseDouble(prev.originLat);
+                        double originLng = Double.parseDouble(prev.originLng);
+                        LatLng origin = new LatLng(originLat,originLng);
+
+                        double destLat = Double.parseDouble(prev.destLat);
+                        double destLng = Double.parseDouble(prev.destLng);
+                        LatLng dest = new LatLng(destLat,destLng);
+
+                        MarkerOptions originOpt = new MarkerOptions().position(origin).title("Position A");
+                        MarkerOptions destOpt = new MarkerOptions().position(dest).title("Position B");
+
+                        Marker originMark = map.addMarker(originOpt);
+                        markers.add(originMark);
+                        Marker destMark = map.addMarker(destOpt);
+                        markers.add(destMark);
+
+                        List<LatLng> cords= new ArrayList<LatLng>();
+                        PolylineOptions polyOpt = new PolylineOptions();
+                        cords = PolyUtil.decode(prev.encodedPolyLine);
+                        polyOpt.addAll(cords).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
+                        currentPoly = map.addPolyline(polyOpt);
+                        map.moveCamera(CameraUpdateFactory.newLatLngZoom(originMark.getPosition(), 13));
+                    }
+                }
+            }
+        });
+
         Bundle mapViewBundle = null;
         if (savedInstanceState != null) {
             mapViewBundle = savedInstanceState.getBundle(MAPVIEW_BUNDLE_KEY);
@@ -577,6 +624,9 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                             cords = PolyUtil.decode(polyEncode);
                             polyOpt.addAll(cords).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
                             currentPoly = map.addPolyline(polyOpt);
+
+                            Route prevRoute = new Route("Previous",originLat+"",originLng+"",destLat+"",destLng+"",polyEncode,highwaySwitch.isChecked()+"",tollSwitch.isChecked()+"");
+                            previousRoutes.add(prevRoute);
                         } catch (JSONException e) {
                             System.out.println("Error: "+e.getMessage());
                             Toast.makeText(HomePage.this, e.getMessage(), Toast.LENGTH_LONG).show();
