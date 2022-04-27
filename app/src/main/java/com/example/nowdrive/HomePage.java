@@ -76,6 +76,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -114,6 +116,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
 
     Deque<Route> previousRoutes = new ArrayDeque<Route>();
     ArrayAdapter<String> adapter;
+    ArrayList<Route> gatheredRoutes = new ArrayList<Route>();
     ArrayList<Route> DBRoutes = new ArrayList<Route>();
     ArrayList<String> DBRoutesName = new ArrayList<String>();
     ArrayList<Marker> markers = new ArrayList<Marker>();
@@ -270,12 +273,12 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                             }
                         }
                     }
-                    }).addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            Toast.makeText(HomePage.this, e.getMessage(), Toast.LENGTH_LONG).show();
-                        }
-                    });
+                }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(HomePage.this, e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                });
                 searchFlag = true;
                 return false;
             }
@@ -312,6 +315,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                 if(markers.size()<2){
                     Toast.makeText(HomePage.this, "Two points must be placed!", Toast.LENGTH_LONG).show();
                 } else {
+                    gatheredRoutes.clear();
                     Marker originMark = null;
                     Marker destMark = null;
                     for(int i=0;i<markers.size();i++){
@@ -321,12 +325,26 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                             destMark = markers.get(i);
                         }
                     }
-                    queue.cancelAll("Google Maps API Call");
+                    queue.cancelAll("Here Directions API Call");
                     calBar.setVisibility(View.VISIBLE);
-                    StringRequest strReq = createStringRequest(originMark.getPosition().latitude,originMark.getPosition().longitude,destMark.getPosition().latitude,destMark.getPosition().longitude);
-                    strReq.setTag("Google Maps API Call");
-                    queue.add(strReq);
-                    calBar.setVisibility(View.GONE);
+                    ArrayList<StringRequest> strReqs = createStringRequest(originMark.getPosition().latitude,originMark.getPosition().longitude,destMark.getPosition().latitude,destMark.getPosition().longitude);
+                    for (int i=0;i<strReqs.size();i++){
+                        StringRequest strReq = strReqs.get(i);
+                        strReq.setTag("Here Directions API Call");
+                        queue.add(strReq);
+                    }
+
+                    queue.addRequestFinishedListener(new RequestQueue.RequestFinishedListener<Object>() {
+                        @Override
+                        public void onRequestFinished(Request<Object> request) {
+                            calBar.setVisibility(View.GONE);
+                            previousRoutes.add(gatheredRoutes.get(0));
+
+                            PolylineOptions polyOpt = new PolylineOptions().addAll(PolyUtil.decode(gatheredRoutes.get(0).encodedPolyLine)).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
+                            currentPoly = map.addPolyline(polyOpt);
+                        }
+                    });
+
                     map.moveCamera(CameraUpdateFactory.newLatLngZoom(originMark.getPosition(), 13));
                 }
             }
@@ -411,7 +429,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                                 }).addOnFailureListener(new OnFailureListener() {
                                     @Override
                                     public void onFailure(@NonNull Exception e) {
-                                       Toast.makeText(HomePage.this, e.getMessage(), Toast.LENGTH_LONG).show();
+                                        Toast.makeText(HomePage.this, e.getMessage(), Toast.LENGTH_LONG).show();
                                     }
                                 });
 
@@ -521,11 +539,24 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                 removeMarksList.add(currentMark);
             }
             markers.removeAll(removeMarksList);
+            Boolean checker = currentPoly==null;
             if(currentPoly!=null){
-                currentPoly.remove();
-            }
+                if (locationSwitch.isChecked()&&markers.size()!=0){
+                    currentPoly.remove();
+                    map.clear();
+                    MarkerOptions currMarker = new MarkerOptions().position(markers.get(0).getPosition()).title("Position A");
+                    markers.clear();
+                    Marker newMarker = map.addMarker(currMarker);
+                    markers.add(newMarker);
+                }
+                else {
+                    currentPoly.remove();
+                    map.clear();
+                    markers.clear();
+                }
             }
         }
+    }
 
     private void intialiseMap() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -584,31 +615,78 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         });
     }
 
-    private StringRequest createStringRequest(double originLat, double originLng, double destLat, double destLng) {
-        String prefix = "https://maps.googleapis.com/maps/api/directions/json?";
+    private ArrayList<StringRequest> createStringRequest(double originLat, double originLng, double destLat, double destLng) {
+        ArrayList<StringRequest> strArr = new ArrayList<StringRequest>();
+        ArrayList<Accident> accidents = new ArrayList<Accident>();
+        String prefix = "https://router.hereapi.com/v8/routes?transportMode=car&";
         String origin = "origin="+originLat+","+originLng+"&";
         String dest = "destination="+destLat+","+destLng+"&";
-        String avoid = "";
-        String key = "key="+getString(R.string.google_maps_key);
+        String avoid = "avoid[areas]=bbox:-6.414298,53.341967,-6.413906,53.341602&";
+        String avoidFeatures = "";
+        String expect = "return=polyline&";
+        String key = "apikey="+getString(R.string.google_maps_key);
+
 
         System.out.println("Highway: "+highwaySwitch.isChecked()+" Toll: "+tollSwitch.isChecked());
         if(highwaySwitch.isChecked()){
-            avoid = "avoid=highways";
+            avoidFeatures = "avoid[features]=controlledAccessHighway";
         }
         if(tollSwitch.isChecked()){
-            if(avoid.equals("")){
-                avoid = "avoid=tolls";
+            if(avoidFeatures.equals("")){
+                avoidFeatures = "avoid[features]=tollroad";
             }
             else {
-                avoid += "|tolls";
+                avoidFeatures += ",tollroad";
             }
         }
-        if(!avoid.equals("")){
-            avoid += "&";
+        if(!avoidFeatures.equals("")){
+            avoidFeatures += "&";
         }
 
-        String url = prefix+origin+dest+avoid+key;
+        String url = prefix+origin+dest+avoid+avoidFeatures+expect+key;
+
+        try {
+            JSONObject  jsonObject = new JSONObject(getJSONAsset());
+            JSONArray jsonArray = jsonObject.getJSONArray("accidents");
+            for(int i=0;i<jsonArray.length();i++){
+                JSONObject accident = jsonArray.getJSONObject(i);
+                double cordLat = accident.getDouble("cordLat");
+                double cordLng = accident.getDouble("cordLng");
+                int minor = accident.getInt("minor")*2;
+                int serious = accident.getInt("serious")*6;
+                int fatal = accident.getInt("fatal")*10;
+                int weight = minor+serious+fatal;
+                Accident newAccident = new Accident(cordLat,cordLng,weight);
+                accidents.add(newAccident);
+            }
+        } catch (JSONException e){
+            e.printStackTrace();
+        }
+
         System.out.println("url: "+url);
+
+        strArr.add(sendRequest(url, originLat, originLng, destLat, destLng));
+
+        return strArr;
+    }
+
+    private String getJSONAsset() {
+        String json=null;
+        try {
+            InputStream inputStream = getAssets().open("dockland_accidents.json");
+            int sizeOfFile = inputStream.available();
+            byte[] bufferData = new byte[sizeOfFile];
+            inputStream.read(bufferData);
+            inputStream.close();
+            json = new String(bufferData, "UTF-8");
+        } catch (IOException e){
+             e.printStackTrace();
+             return null;
+        }
+        return json;
+    }
+
+    private StringRequest sendRequest(String url, double originLat, double originLng, double destLat, double destLng) {
         return new StringRequest(Request.Method.GET, url,
                 new Response.Listener<String>() {
                     @Override
@@ -619,14 +697,22 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                             JSONObject result = new JSONObject(response);
                             JSONArray routes = result.getJSONArray("routes");
                             JSONObject route = routes.getJSONObject(0);
-                            JSONObject poly = route.getJSONObject("overview_polyline");
-                            String polyEncode = poly.getString("points");
-                            cords = PolyUtil.decode(polyEncode);
-                            polyOpt.addAll(cords).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
-                            currentPoly = map.addPolyline(polyOpt);
+                            JSONArray sections = route.getJSONArray("sections");
+                            JSONObject section = sections.getJSONObject(0);
 
-                            Route prevRoute = new Route("Previous",originLat+"",originLng+"",destLat+"",destLng+"",polyEncode,highwaySwitch.isChecked()+"",tollSwitch.isChecked()+"");
-                            previousRoutes.add(prevRoute);
+                            String polyEncode = section.getString("polyline");
+
+                            List<flexiableDecoder.LatLngZ> test = flexiableDecoder.decode(polyEncode);
+
+                            for(int i=0;i<test.size();i++){
+                                flexiableDecoder.LatLngZ testLatLngZ = test.get(i);
+                                LatLng newLatLng = new LatLng(testLatLngZ.lat,testLatLngZ.lng);
+                                cords.add(newLatLng);
+                            }
+
+                            Route gatheredRoute = new Route("Previous",originLat+"",originLng+"",destLat+"",destLng+"",PolyUtil.encode(cords),highwaySwitch.isChecked()+"",tollSwitch.isChecked()+"");
+                            gatheredRoutes.add(gatheredRoute);
+
                         } catch (JSONException e) {
                             System.out.println("Error: "+e.getMessage());
                             Toast.makeText(HomePage.this, e.getMessage(), Toast.LENGTH_LONG).show();
@@ -636,7 +722,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        Toast.makeText(HomePage.this, "Google Maps API not responding", Toast.LENGTH_LONG).show();
+                        Toast.makeText(HomePage.this, "Here Directions API not responding", Toast.LENGTH_LONG).show();
                         System.out.println("Error Response: "+error.getMessage());
                     }
                 });

@@ -1,0 +1,228 @@
+{
+  "accidents": [
+    {
+      "cordLat": 53.348098,
+      "cordLng": -6.248252,
+      "minor": 3,
+      "serious": 0,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.347957,
+      "cordLng": -6.245945,
+      "minor": 3,
+      "serious": 0,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.348288,
+      "cordLng": -6.251594,
+      "minor": 5,
+      "serious": 2,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.349908,
+      "cordLng": -6.250950,
+      "minor": 10,
+      "serious": 0,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.350625,
+      "cordLng": -6.250499,
+      "minor": 4,
+      "serious": 2,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.351375,
+      "cordLng": -6.250066,
+      "minor": 11,
+      "serious": 2,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.351845,
+      "cordLng": -6.249669,
+      "minor": 7,
+      "serious": 0,
+      "fatal": 1
+    },
+    {
+      "cordLat": 53.351256,
+      "cordLng": -6.249084,
+      "minor": 1,
+      "serious": 0,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.349415,
+      "cordLng": -6.245817,
+      "minor": 7,
+      "serious": 1,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.351305,
+      "cordLng": -6.244835,
+      "minor": 1,
+      "serious": 0,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.350847,
+      "cordLng": -6.244304,
+      "minor": 1,
+      "serious": 0,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.350770,
+      "cordLng": -6.243236,
+      "minor": 1,
+      "serious": 0,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.350690,
+      "cordLng": -6.241954,
+      "minor": 1,
+      "serious": 0,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.352393,
+      "cordLng": -6.243537,
+      "minor": 8,
+      "serious": 1,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.351285,
+      "cordLng": -6.242046,
+      "minor": 4,
+      "serious": 1,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.350574,
+      "cordLng": -6.241016,
+      "minor": 7,
+      "serious": 1,
+      "fatal": 1
+    },
+    {
+      "cordLat": 53.349191,
+      "cordLng": -6.242057,
+      "minor": 1,
+      "serious": 1,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.347617,
+      "cordLng": -6.241193,
+      "minor": 9,
+      "serious": 1,
+      "fatal": 1
+    },
+    {
+      "cordLat": 53.347444,
+      "cordLng": -6.238060,
+      "minor": 3,
+      "serious": 1,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.347383,
+      "cordLng": -6.236928,
+      "minor": 4,
+      "serious": 0,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.347290,
+      "cordLng": -6.235576,
+      "minor": 3,
+      "serious": 2,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.350243,
+      "cordLng": -6.234999,
+      "minor": 3,
+      "serious": 0,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.350006,
+      "cordLng": -6.231802,
+      "minor": 3,
+      "serious": 0,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.348828,
+      "cordLng": -6.231963,
+      "minor": 1,
+      "serious": 0,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.347040,
+      "cordLng": -6.232255,
+      "minor": 3,
+      "serious": 2,
+      "fatal": 1
+    },
+    {
+      "cordLat": 53.346880,
+      "cordLng": -6.230080,
+      "minor": 2,
+      "serious": 0,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.346872,
+      "cordLng": -6.227573,
+      "minor": 7,
+      "serious": 2,
+      "fatal": 1
+    },
+    {
+      "cordLat": 53.347852,
+      "cordLng": -6.227074,
+      "minor": 1,
+      "serious": 0,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.348486,
+      "cordLng": -6.227020,
+      "minor": 1,
+      "serious": 0,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.349475,
+      "cordLng": -6.227058,
+      "minor": 1,
+      "serious": 0,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.349478,
+      "cordLng": -6.226827,
+      "minor": 1,
+      "serious": 0,
+      "fatal": 0
+    },
+    {
+      "cordLat": 53.349715,
+      "cordLng": -6.227042,
+      "minor": 3,
+      "serious": 0,
+      "fatal": 0
+    }
+  ]
+}
