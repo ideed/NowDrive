@@ -13,6 +13,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
 import android.os.AsyncTask;
@@ -96,6 +97,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
     MapView mapView;
     GoogleMap map;
     RequestQueue queue;
+    RequestQueue queueTwo;
     FusedLocationProviderClient mFusedLocationClient;
     LatLng userLatLng;
     Polyline currentPoly;
@@ -133,6 +135,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         userLocation = false;
         isUserlocationChecked = false;
         queue = Volley.newRequestQueue(this);
+        queueTwo = Volley.newRequestQueue(this);
         drawerLayout = findViewById(R.id.drawer_layout);
         navigationView = findViewById(R.id.nav_view);
         toolbar = findViewById(R.id.toolbar);
@@ -327,21 +330,83 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                     }
                     queue.cancelAll("Here Directions API Call");
                     calBar.setVisibility(View.VISIBLE);
-                    ArrayList<StringRequest> strReqs = createStringRequest(originMark.getPosition().latitude,originMark.getPosition().longitude,destMark.getPosition().latitude,destMark.getPosition().longitude);
+                    ArrayList<StringRequest> strReqs = createStringRequest(originMark.getPosition().latitude,originMark.getPosition().longitude,destMark.getPosition().latitude,destMark.getPosition().longitude, false);
+
                     for (int i=0;i<strReqs.size();i++){
                         StringRequest strReq = strReqs.get(i);
                         strReq.setTag("Here Directions API Call");
                         queue.add(strReq);
                     }
 
+                    Marker finalOriginMark = originMark;
+                    Marker finalDestMark = destMark;
                     queue.addRequestFinishedListener(new RequestQueue.RequestFinishedListener<Object>() {
                         @Override
                         public void onRequestFinished(Request<Object> request) {
-                            calBar.setVisibility(View.GONE);
-                            previousRoutes.add(gatheredRoutes.get(0));
+                            ArrayList<StringRequest> finalStrReqs = new ArrayList<StringRequest>();
+                            finalStrReqs = createStringRequest(finalOriginMark.getPosition().latitude, finalOriginMark.getPosition().longitude, finalDestMark.getPosition().latitude, finalDestMark.getPosition().longitude, true);
+                            if(finalStrReqs.isEmpty()){
+                                Route selectedRoute = gatheredRoutes.get(0);
+                                calBar.setVisibility(View.GONE);
+                                previousRoutes.add(selectedRoute);
 
-                            PolylineOptions polyOpt = new PolylineOptions().addAll(PolyUtil.decode(gatheredRoutes.get(0).encodedPolyLine)).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
-                            currentPoly = map.addPolyline(polyOpt);
+                                PolylineOptions polyOpt = new PolylineOptions().addAll(PolyUtil.decode(selectedRoute.encodedPolyLine)).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
+                                currentPoly = map.addPolyline(polyOpt);
+                            } else {
+                                queueTwo.cancelAll("Here Directions API Call");
+                                for (StringRequest strReq: finalStrReqs){
+                                    strReq.setTag("Here Directions API Call");
+                                    queueTwo.add(strReq);
+                                }
+                                queueTwo.addRequestFinishedListener(new RequestQueue.RequestFinishedListener<Object>() {
+                                    @Override
+                                    public void onRequestFinished(Request<Object> request) {
+                                        if (gatheredRoutes.size()>2){
+                                            LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+                                            View popupView = inflater.inflate(R.layout.cal_route_popup, null);
+                                            int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+                                            int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+                                            boolean focusable = true;
+
+                                            PopupWindow popupWindow = new PopupWindow(popupView, width, height, focusable);
+                                            popupWindow.showAtLocation(view, Gravity.CENTER, 0, 0);
+
+                                            popupView.findViewById(R.id.cancel_btn).setOnClickListener(new View.OnClickListener() {
+                                                @Override
+                                                public void onClick(View view) {
+                                                    popupWindow.setBackgroundDrawable(new BitmapDrawable());
+                                                    popupWindow.dismiss();
+                                                }
+                                            });
+
+                                            ListView routeView = popupView.findViewById(R.id.route_list);
+                                            ArrayList<String> routeNames = new ArrayList<String>();
+
+                                            for(int i=0;i<gatheredRoutes.size();i++){
+                                                routeNames.add("Route "+(i+1));
+                                            }
+
+                                            ArrayAdapter<String> routeAdapter = new ArrayAdapter<String>(HomePage.this, android.R.layout.simple_list_item_1, routeNames);
+                                            routeView.setAdapter(routeAdapter);
+                                            calBar.setVisibility(View.GONE);
+
+                                            routeView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                                                @Override
+                                                public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                                                    Route selectedRoute = gatheredRoutes.get(i);
+                                                    previousRoutes.add(selectedRoute);
+
+                                                    PolylineOptions polyOpt = new PolylineOptions().addAll(PolyUtil.decode(selectedRoute.encodedPolyLine)).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
+                                                    currentPoly = map.addPolyline(polyOpt);
+                                                    routeNames.clear();
+                                                    popupWindow.setBackgroundDrawable(new BitmapDrawable());
+                                                    popupWindow.dismiss();
+                                                }
+                                            });
+                                        }
+                                    }
+                                });
+                            }
                         }
                     });
 
@@ -615,13 +680,12 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         });
     }
 
-    private ArrayList<StringRequest> createStringRequest(double originLat, double originLng, double destLat, double destLng) {
+    private ArrayList<StringRequest> createStringRequest(double originLat, double originLng, double destLat, double destLng, boolean routeFlag) {
         ArrayList<StringRequest> strArr = new ArrayList<StringRequest>();
-        ArrayList<Accident> accidents = new ArrayList<Accident>();
         String prefix = "https://router.hereapi.com/v8/routes?transportMode=car&";
         String origin = "origin="+originLat+","+originLng+"&";
         String dest = "destination="+destLat+","+destLng+"&";
-        String avoid = "avoid[areas]=bbox:-6.414298,53.341967,-6.413906,53.341602&";
+        String avoid = "";
         String avoidFeatures = "";
         String expect = "return=polyline&";
         String key = "apikey="+getString(R.string.google_maps_key);
@@ -643,30 +707,71 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
             avoidFeatures += "&";
         }
 
-        String url = prefix+origin+dest+avoid+avoidFeatures+expect+key;
-
-        try {
-            JSONObject  jsonObject = new JSONObject(getJSONAsset());
-            JSONArray jsonArray = jsonObject.getJSONArray("accidents");
-            for(int i=0;i<jsonArray.length();i++){
-                JSONObject accident = jsonArray.getJSONObject(i);
-                double cordLat = accident.getDouble("cordLat");
-                double cordLng = accident.getDouble("cordLng");
-                int minor = accident.getInt("minor")*2;
-                int serious = accident.getInt("serious")*6;
-                int fatal = accident.getInt("fatal")*10;
-                int weight = minor+serious+fatal;
-                Accident newAccident = new Accident(cordLat,cordLng,weight);
-                accidents.add(newAccident);
+        if(routeFlag) {
+            ArrayList<Accident> accidents = new ArrayList<Accident>();
+            try {
+                JSONObject  jsonObject = new JSONObject(getJSONAsset());
+                JSONArray jsonArray = jsonObject.getJSONArray("accidents");
+                for(int i=0;i<jsonArray.length();i++){
+                    JSONObject accident = jsonArray.getJSONObject(i);
+                    double cordLat = accident.getDouble("cordLat");
+                    double cordLng = accident.getDouble("cordLng");
+                    int minor = accident.getInt("minor")*2;
+                    int serious = accident.getInt("serious")*6;
+                    int fatal = accident.getInt("fatal")*10;
+                    int weight = minor+serious+fatal;
+                    Accident newAccident = new Accident(cordLat,cordLng,weight);
+                    accidents.add(newAccident);
+                }
+            } catch (JSONException e){
+                e.printStackTrace();
             }
-        } catch (JSONException e){
-            e.printStackTrace();
+
+            Boolean routeCheck = false;
+
+            for(Accident accident: accidents){
+                LatLng pos = new LatLng(accident.cordLat,accident.cordLng);
+                if(PolyUtil.isLocationOnEdge(pos, PolyUtil.decode(gatheredRoutes.get(0).encodedPolyLine), true, 15)){
+                    routeCheck = true;
+                }
+            }
+
+            if(routeCheck) {
+                avoid = "avoid[areas]=";
+                for (Accident accident: accidents){
+                    if(accident.weight<20){
+                        if(avoid.equals("avoid[areas]=")){
+                            avoid += "bbox:"+(accident.cordLng-0.000188)+","+(accident.cordLat+0.000171)+","+(accident.cordLng+0.000204)+","+(accident.cordLat-0.000194);
+                        } else {
+                            avoid += "|bbox:"+(accident.cordLng-0.000188)+","+(accident.cordLat+0.000171)+","+(accident.cordLng+0.000204)+","+(accident.cordLat-0.000194);
+                        }
+                    }
+                }
+                avoid += "&";
+                String mediumUrl = prefix+origin+dest+avoid+avoidFeatures+expect+key;
+                strArr.add(sendRequest(mediumUrl, originLat, originLng, destLat, destLng));
+
+                avoid = "avoid[areas]=";
+                for (Accident accident: accidents){
+                    if(avoid.equals("avoid[areas]=")){
+                        avoid += "bbox:"+(accident.cordLng-0.000188)+","+(accident.cordLat+0.000171)+","+(accident.cordLng+0.000204)+","+(accident.cordLat-0.000194);
+                    } else {
+                        avoid += "|bbox:"+(accident.cordLng-0.000188)+","+(accident.cordLat+0.000171)+","+(accident.cordLng+0.000204)+","+(accident.cordLat-0.000194);
+                    }
+                }
+                avoid += "&";
+                String highURl = prefix+origin+dest+avoid+avoidFeatures+expect+key;
+                strArr.add(sendRequest(highURl, originLat, originLng, destLat, destLng));
+            }
+        } else {
+            String url = prefix+origin+dest+avoid+avoidFeatures+expect+key;
+
+            System.out.println("url: "+url);
+
+            StringRequest req = sendRequest(url, originLat, originLng, destLat, destLng);
+
+            strArr.add(req);
         }
-
-        System.out.println("url: "+url);
-
-        strArr.add(sendRequest(url, originLat, originLng, destLat, destLng));
-
         return strArr;
     }
 
