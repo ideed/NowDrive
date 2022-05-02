@@ -688,7 +688,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         String avoid = "";
         String avoidFeatures = "";
         String expect = "return=polyline&";
-        String key = "apikey="+getString(R.string.google_maps_key);
+        String key = "apikey="+getString(R.string.here_api_key);
 
 
         System.out.println("Highway: "+highwaySwitch.isChecked()+" Toll: "+tollSwitch.isChecked());
