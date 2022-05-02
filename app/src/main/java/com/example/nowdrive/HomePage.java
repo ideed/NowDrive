@@ -23,6 +23,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -312,11 +313,26 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         calRoutes.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+                View popupView = inflater.inflate(R.layout.cal_route_popup, null, false);
+                int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+                int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+                boolean focusable = true;
+
+                PopupWindow popupWindow = new PopupWindow(popupView, width, height, focusable);
+                popupWindow.setBackgroundDrawable(new BitmapDrawable());
+                popupWindow.setOutsideTouchable(true);
+
+                popupWindow.showAtLocation(view, Gravity.CENTER, 0, 0);
+
+                popupWindow.getContentView().setVisibility(View.GONE);
+
                 if(currentPoly!=null){
                     currentPoly.remove();
                 }
                 if(markers.size()<2){
                     Toast.makeText(HomePage.this, "Two points must be placed!", Toast.LENGTH_LONG).show();
+                    popupWindow.dismiss();
                 } else {
                     gatheredRoutes.clear();
                     Marker originMark = null;
@@ -352,6 +368,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
 
                                 PolylineOptions polyOpt = new PolylineOptions().addAll(PolyUtil.decode(selectedRoute.encodedPolyLine)).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
                                 currentPoly = map.addPolyline(polyOpt);
+                                popupWindow.dismiss();
                             } else {
                                 queueTwo.cancelAll("Here Directions API Call");
                                 for (StringRequest strReq: finalStrReqs){
@@ -362,19 +379,10 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                                     @Override
                                     public void onRequestFinished(Request<Object> request) {
                                         if (gatheredRoutes.size()>2){
-                                            LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
-                                            View popupView = inflater.inflate(R.layout.cal_route_popup, null);
-                                            int width = LinearLayout.LayoutParams.WRAP_CONTENT;
-                                            int height = LinearLayout.LayoutParams.WRAP_CONTENT;
-                                            boolean focusable = true;
-
-                                            PopupWindow popupWindow = new PopupWindow(popupView, width, height, focusable);
-                                            popupWindow.showAtLocation(view, Gravity.CENTER, 0, 0);
-
+                                            popupWindow.getContentView().setVisibility(View.VISIBLE);
                                             popupView.findViewById(R.id.cancel_btn).setOnClickListener(new View.OnClickListener() {
                                                 @Override
                                                 public void onClick(View view) {
-                                                    popupWindow.setBackgroundDrawable(new BitmapDrawable());
                                                     popupWindow.dismiss();
                                                 }
                                             });
@@ -399,7 +407,6 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                                                     PolylineOptions polyOpt = new PolylineOptions().addAll(PolyUtil.decode(selectedRoute.encodedPolyLine)).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
                                                     currentPoly = map.addPolyline(polyOpt);
                                                     routeNames.clear();
-                                                    popupWindow.setBackgroundDrawable(new BitmapDrawable());
                                                     popupWindow.dismiss();
                                                 }
                                             });
@@ -421,7 +428,6 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                 if(currentPoly==null){
                     Toast.makeText(HomePage.this, "A route must be plotted in order to be saved!", Toast.LENGTH_LONG).show();
                 } else {
-
                     LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
                     View popupView = inflater.inflate(R.layout.save_route_popup, null);
                     int width = LinearLayout.LayoutParams.WRAP_CONTENT;
