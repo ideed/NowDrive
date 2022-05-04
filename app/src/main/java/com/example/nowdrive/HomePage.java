@@ -103,6 +103,8 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
     LatLng userLatLng;
     Polyline currentPoly;
     SearchView routeSearch;
+    TextView durView;
+    TextView lengthView;
     Button removePointsBtn;
     Button calRoutes;
     Button saveRoute;
@@ -114,6 +116,8 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
     Boolean isUserlocationChecked;
     Boolean locFlag;
     Boolean searchFlag;
+    int currentDur;
+    int currentLength;
     ProgressBar calBar;
     ListView routesView;
 
@@ -150,6 +154,8 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         highwaySwitch = findViewById(R.id.highway_switch);
         calBar = findViewById(R.id.calBar);
         routesView = findViewById(R.id.routes_view);
+        durView = findViewById(R.id.dur_textView);
+        lengthView = findViewById(R.id.length_textView);
 
         mAuth = FirebaseAuth.getInstance();
         user = mAuth.getCurrentUser();
@@ -246,6 +252,13 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                                 cords = PolyUtil.decode(currentRoute.encodedPolyLine);
                                 polyOpt.addAll(cords).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
                                 currentPoly = map.addPolyline(polyOpt);
+                                currentDur = Integer.parseInt(currentRoute.duration);
+                                currentLength = Integer.parseInt(currentRoute.length);
+                                int duration = (int) Math.round(Integer.parseInt(currentRoute.duration)/60);
+                                durView.setText("Duration: "+duration+" minutes");
+                                durView.setVisibility(View.VISIBLE);
+                                lengthView.setText("Length: "+currentRoute.length+" m");
+                                lengthView.setVisibility(View.VISIBLE);
                                 routeSearch.clearFocus();
                                 map.moveCamera(CameraUpdateFactory.newLatLngZoom(originMark.getPosition(), 13));
                             }
@@ -368,6 +381,13 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
 
                                 PolylineOptions polyOpt = new PolylineOptions().addAll(PolyUtil.decode(selectedRoute.encodedPolyLine)).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
                                 currentPoly = map.addPolyline(polyOpt);
+                                currentDur = Integer.parseInt(selectedRoute.duration);
+                                currentLength = Integer.parseInt(selectedRoute.length);
+                                int duration = (int) Math.round(Integer.parseInt(selectedRoute.duration)/60);
+                                durView.setText("Duration: "+duration+" minutes");
+                                durView.setVisibility(View.VISIBLE);
+                                lengthView.setText("Length: "+selectedRoute.length+" m");
+                                lengthView.setVisibility(View.VISIBLE);
                                 popupWindow.dismiss();
                             } else {
                                 queueTwo.cancelAll("Here Directions API Call");
@@ -391,7 +411,8 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                                             ArrayList<String> routeNames = new ArrayList<String>();
 
                                             for(int i=0;i<gatheredRoutes.size();i++){
-                                                routeNames.add("Route "+(i+1));
+                                                int dur = (int) Math.round(Integer.parseInt(gatheredRoutes.get(i).duration)/60);
+                                                routeNames.add("ROUTE "+(i+1)+"\nDuration: "+dur+" minutes"+"\nLength: "+gatheredRoutes.get(i).length+" m");
                                             }
 
                                             ArrayAdapter<String> routeAdapter = new ArrayAdapter<String>(HomePage.this, android.R.layout.simple_list_item_1, routeNames);
@@ -406,6 +427,13 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
 
                                                     PolylineOptions polyOpt = new PolylineOptions().addAll(PolyUtil.decode(selectedRoute.encodedPolyLine)).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
                                                     currentPoly = map.addPolyline(polyOpt);
+                                                    currentLength = Integer.parseInt(selectedRoute.length);
+                                                    currentDur = Integer.parseInt(selectedRoute.duration);
+                                                    int duration = (int) Math.round(Integer.parseInt(selectedRoute.duration)/60);
+                                                    durView.setText("Duration: "+duration+" minutes");
+                                                    durView.setVisibility(View.VISIBLE);
+                                                    lengthView.setText("Length: "+selectedRoute.length+" m");
+                                                    lengthView.setVisibility(View.VISIBLE);
                                                     routeNames.clear();
                                                     popupWindow.dismiss();
                                                 }
@@ -458,6 +486,8 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                                 String destLat = ""+markers.get(1).getPosition().latitude;
                                 String destLng = ""+markers.get(1).getPosition().longitude;
                                 String encodedPolyline = PolyUtil.encode(currentPoly.getPoints());
+                                String dur = ""+currentDur;
+                                String length = ""+currentLength;
                                 String avoidHighways = ""+highwaySwitch.isChecked();
                                 String avoidTolls = ""+tollSwitch.isChecked();
 
@@ -482,7 +512,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                                         }
 
                                         if(!nameFlag){
-                                            Route newRoute = new Route(route_name, originLat, originLng, destLat, destLng, encodedPolyline, avoidHighways, avoidTolls);
+                                            Route newRoute = new Route(route_name, originLat, originLng, destLat, destLng, encodedPolyline, avoidHighways, avoidTolls, dur, length);
                                             FirebaseDatabase.getInstance().getReference("Users")
                                                     .child(FirebaseAuth.getInstance().getCurrentUser().getUid())
                                                     .child("Routes").child(ref.push().getKey()).setValue(newRoute).addOnCompleteListener(new OnCompleteListener<Void>() {
@@ -550,6 +580,13 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                         cords = PolyUtil.decode(prev.encodedPolyLine);
                         polyOpt.addAll(cords).width(5).color(Color.RED).geodesic(true).jointType(JointType.ROUND);
                         currentPoly = map.addPolyline(polyOpt);
+                        currentDur = Integer.parseInt(prev.duration);
+                        currentLength = Integer.parseInt(prev.length);
+                        int duration = (int) Math.round(Integer.parseInt(prev.duration)/60);
+                        durView.setText("Duration: "+duration+" minutes");
+                        durView.setVisibility(View.VISIBLE);
+                        lengthView.setText("Length: "+prev.length+" m");
+                        lengthView.setVisibility(View.VISIBLE);
                         map.moveCamera(CameraUpdateFactory.newLatLngZoom(originMark.getPosition(), 13));
                     }
                 }
@@ -598,6 +635,8 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         if(markers.size()==0&&!locFlag&&!searchFlag){
             Toast.makeText(HomePage.this, "No points on map!", Toast.LENGTH_LONG).show();
         } else {
+            durView.setVisibility(View.GONE);
+            lengthView.setVisibility(View.GONE);
             System.out.println("Size: "+markers.size());
             ArrayList<Marker> removeMarksList = new ArrayList<Marker>();
             for (int i=0;i<markers.size();i++){
@@ -693,7 +732,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
         String dest = "destination="+destLat+","+destLng+"&";
         String avoid = "";
         String avoidFeatures = "";
-        String expect = "return=polyline&";
+        String expect = "return=polyline,summary&";
         String key = "apikey="+getString(R.string.here_api_key);
 
 
@@ -810,8 +849,11 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                             JSONObject route = routes.getJSONObject(0);
                             JSONArray sections = route.getJSONArray("sections");
                             JSONObject section = sections.getJSONObject(0);
+                            JSONObject summary = section.getJSONObject("summary");
 
                             String polyEncode = section.getString("polyline");
+                            int duration = summary.getInt("duration");
+                            int length = summary.getInt("length");
 
                             List<flexiableDecoder.LatLngZ> test = flexiableDecoder.decode(polyEncode);
 
@@ -821,7 +863,7 @@ public class HomePage extends AppCompatActivity implements NavigationView.OnNavi
                                 cords.add(newLatLng);
                             }
 
-                            Route gatheredRoute = new Route("Previous",originLat+"",originLng+"",destLat+"",destLng+"",PolyUtil.encode(cords),highwaySwitch.isChecked()+"",tollSwitch.isChecked()+"");
+                            Route gatheredRoute = new Route("Previous",originLat+"",originLng+"",destLat+"",destLng+"",PolyUtil.encode(cords),highwaySwitch.isChecked()+"",tollSwitch.isChecked()+"",duration+"", length+"");
                             gatheredRoutes.add(gatheredRoute);
 
                         } catch (JSONException e) {
